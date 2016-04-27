@@ -10,7 +10,7 @@ module PagingCursor
       def cursor(options={})
         result = before(options[:before]) if options.has_key?(:before)
         result ||= after(options[:after])
-        result.limit(options[:limit])
+        result.limit(options[:count])
       end
 
       def before(cursor=nil)
@@ -29,12 +29,12 @@ module PagingCursor
 
       # TODO: allow setting default at global and model levels
       def initialize *a
-        self.cursor_page_limit = 10
+        self.cursor_page_limit = 25
         super *a
       end
 
       def cursor_page_limit
-        @cursor_page_limit ||= 10
+        @cursor_page_limit ||= 25
       end
     end
 

@@ -1,11 +1,12 @@
 module PagingCursor
   module Direction
+
     def cursor_before
-      self.dup.sort.first.try(:id)
+      self.collect(&:id).min
     end
 
     def cursor_after
-      self.dup.sort.last.try(:id)
+      self.collect(&:id).max
     end
   end
 
