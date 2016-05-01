@@ -4,54 +4,64 @@ module PagingCursor
   module ActiveRecord
 
     # TODO: option to set which column is used for pagination
-    #  default = 
+    #  default = :id
     module FinderMethods
+
       # default order = after
       def cursor(options={})
         result = before(options[:before]) if options.has_key?(:before)
         result ||= after(options[:after])
-        result.limit(options[:count])
+        result.limit(options[:limit] || self.cursor_page_limit)
       end
 
       def before(cursor=nil)
         result = where(cursor ? arel_table[primary_key].lt(cursor) : nil).reorder(arel_table[primary_key].desc)
-        result.reverse_cursor_result = true
+        result.sort_order = :desc
         result
       end
 
       def after(cursor=nil)
-        where(arel_table[primary_key].gt(cursor || 0)).reorder(arel_table[primary_key].asc)
+        result = where(arel_table[primary_key].gt(cursor || 0)).reorder(arel_table[primary_key].asc)
+        result.sort_order = :asc
+        result
       end
     end
 
-    module Limits
+    module Limit
       attr_accessor :cursor_page_limit
 
       # TODO: allow setting default at global and model levels
       def initialize *a
-        self.cursor_page_limit = 25
+        self.default_page_limit = 25
         super *a
       end
 
       def cursor_page_limit
-        @cursor_page_limit ||= 25
+        @cursor_page_limit ||= PagingCursor.config.default_page_limit
       end
     end
 
     module SortedResults
-      attr_accessor :reverse_cursor_result
+      attr_accessor :sort_order
 
       def initialize *a
-        self.reverse_cursor_result = false
+        self.sort_order = :asc
         super *a
       end
 
       def to_a
-        ::PagingCursor::Array.new(self.reverse_cursor_result ? super.reverse : super)
+        if self.sort_order != PagingCursor.config.default_sort_order.to_sym
+          r = super
+          r = ::PagingCursor::Array.new(super.reverse)
+        else 
+          r = ::PagingCursor::Array.new(super)
+        end
+        r
       end
     end
 
     ::ActiveRecord::Base.extend FinderMethods
+    ::ActiveRecord::Base.extend Limit
 
     klasses = [::ActiveRecord::Relation]
     if defined? ::ActiveRecord::Associations::CollectionProxy
@@ -64,7 +74,6 @@ module PagingCursor
     klasses.each do |klass| 
       klass.send(:prepend, SortedResults)
       klass.send(:include, FinderMethods) 
-      klass.send(:include, Limits) 
       klass.send(:include, ::PagingCursor::Direction)
     end
   end

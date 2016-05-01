@@ -18,6 +18,7 @@ describe 'finders' do
   end
 
   before do
+    PagingCursor.config.default_sort_order = :asc
     @user = User.create
     10.times do
       Post.create(user_id: @user.id)
@@ -31,7 +32,7 @@ describe 'finders' do
     User.delete_all
   end
 
-  it 'accepts the limit paramter through cursor' do
+  it 'accepts the limit parameter through cursor' do
     expect(Post.cursor(limit: 2).size).to eq(2)
   end
 
@@ -41,6 +42,14 @@ describe 'finders' do
 
   it 'returns a PagingCursor::Array' do
     expect(Post.after.to_a.class).to be(PagingCursor::Array)
+  end
+
+  it 'respects configured sort order' do
+    PagingCursor.config.default_sort_order = :desc
+    after = Post.after
+    before = Post.before
+    expect(after.first.id).to be > after.last.id
+    expect(before.first.id).to be > before.last.id
   end
 
   context 'on active record' do
