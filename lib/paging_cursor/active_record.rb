@@ -17,12 +17,14 @@ module PagingCursor
       def before(cursor=nil)
         result = where(cursor ? arel_table[primary_key].lt(cursor) : nil).reorder(arel_table[primary_key].desc)
         result.sort_order = :desc
+        result.cursored = true
         result
       end
 
       def after(cursor=nil)
         result = where(arel_table[primary_key].gt(cursor || 0)).reorder(arel_table[primary_key].asc)
         result.sort_order = :asc
+        result.cursored = true
         result
       end
     end
@@ -42,19 +44,19 @@ module PagingCursor
     end
 
     module SortedResults
-      attr_accessor :sort_order
+      attr_accessor :sort_order, :cursored
 
       def initialize *a
         self.sort_order = :asc
+        self.cursored = false # todo, separate module??
         super *a
       end
 
       def to_a
+        return super unless self.cursored
+        r = ::PagingCursor::Array.new(super)
         if self.sort_order != PagingCursor.config.default_sort_order.to_sym
-          r = super
-          r = ::PagingCursor::Array.new(super.reverse)
-        else 
-          r = ::PagingCursor::Array.new(super)
+          r.reverse!
         end
         r
       end
@@ -70,7 +72,7 @@ module PagingCursor
       klasses << ::ActiveRecord::Associations::AssociationCollection
     end
 
-    # support pagination on associations and scopes
+    # # support pagination on associations and scopes
     klasses.each do |klass| 
       klass.send(:prepend, SortedResults)
       klass.send(:include, FinderMethods) 
