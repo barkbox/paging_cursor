@@ -10,8 +10,11 @@ module PagingCursor
       # default order = after
       def cursor(options={})
         options = HashWithIndifferentAccess.new(options)
-        result = before(options[:before]) if options.has_key?(:before) || PagingCursor.config.default_sort_order == :desc
-        result ||= after(options[:after])
+        if options.has_key?(:before) || (!options.has_key?(:after) && PagingCursor.config.default_sort_order == :desc)
+          result = before(options[:before])
+        else
+          result = after(options[:after])
+        end
         result.limit(options[:limit] || self.cursor_page_limit)
       end
 
