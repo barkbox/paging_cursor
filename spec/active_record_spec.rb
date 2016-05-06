@@ -44,12 +44,24 @@ describe 'finders' do
     expect(Post.after.to_a.class).to be(PagingCursor::Array)
   end
 
-  it 'respects configured sort order' do
+  it 'respects configured desc sort order' do
     PagingCursor.config.default_sort_order = :desc
     after = Post.after
     before = Post.before
-    expect(after.first.id).to be > after.last.id
-    expect(before.first.id).to be > before.last.id
+    cursor = Post.cursor
+    expect(after[0].id).to be > after[1].id
+    expect(before[0].id).to be > before[1].id
+    expect(cursor[0].id).to be > cursor[1].id
+  end
+
+  it 'respects configured asc sort order' do
+    PagingCursor.config.default_sort_order = :asc
+    after = Post.after
+    before = Post.before
+    cursor = Post.cursor
+    expect(after[1].id).to be > after[0].id
+    expect(before[1].id).to be > before[0].id
+    expect(cursor[1].id).to be > cursor[0].id
   end
 
   context 'on active record' do

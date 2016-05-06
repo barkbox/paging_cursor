@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    paging_cursor (0.0.0)
+    paging_cursor (0.0.1)
 
 GEM
   remote: https://rubygems.org/

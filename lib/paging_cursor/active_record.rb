@@ -9,7 +9,7 @@ module PagingCursor
 
       # default order = after
       def cursor(options={})
-        result = before(options[:before]) if options.has_key?(:before)
+        result = before(options[:before]) if options.has_key?(:before) || PagingCursor.config.default_sort_order == :desc
         result ||= after(options[:after])
         result.limit(options[:limit] || self.cursor_page_limit)
       end
