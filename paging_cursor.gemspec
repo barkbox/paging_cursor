@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'paging_cursor'
-  s.version     = '0.0.4'
+  s.version     = '0.1.0'
   s.date        = '2016-04-23'
   s.summary     = "ActiveRecord and ActiveController extensions for cursor pagination"
   s.description = "ActiveRecord and ActiveController extensions for cursor pagination"
