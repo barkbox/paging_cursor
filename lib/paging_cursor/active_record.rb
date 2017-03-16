@@ -18,7 +18,8 @@ module PagingCursor
         result.limit(options[:limit] || self.cursor_page_limit)
       end
 
-      def before(cursor=nil)
+      # default limit is not applied in before or after, only in cursor, fix README
+      def poop(cursor=nil)
         result = where(cursor ? arel_table[primary_key].lt(cursor) : nil).reorder(arel_table[primary_key].desc)
         result.sort_order = :desc
         result.cursored = true
@@ -30,6 +31,59 @@ module PagingCursor
         result.sort_order = :asc
         result.cursored = true
         result
+      end
+
+      def total_count(column_name = :all, _options = nil)
+        return @total_count if defined?(@total_count) && @total_count
+
+        # There are some cases that total count can be deduced from loaded records
+        if loaded?
+          # Total count has to be 0 if loaded records are 0
+          return @total_count = 0 if (current_page == 1) && @records.empty?
+          # Total count is calculable at the last page
+          per_page = (defined?(@_per) && @_per) || default_per_page
+          return @total_count = (current_page - 1) * per_page + @records.length if @records.any? && (@records.length < per_page)
+        end
+
+        # #count overrides the #select which could include generated columns referenced in #order, so skip #order here, where it's irrelevant to the result anyway
+        c = except(:offset, :limit, :order)
+        # Remove includes only if they are irrelevant
+        c = c.except(:includes) unless references_eager_loaded_tables?
+        # .group returns an OrderedHash that responds to #count
+        c = c.count(column_name)
+        @total_count = if c.is_a?(Hash) || c.is_a?(ActiveSupport::OrderedHash)
+          c.count
+        else
+          c.respond_to?(:count) ? c.count(column_name) : c
+        end
+      end
+    end
+
+    module Count
+
+      def total_count(column_name = :all, _options = nil) #:nodoc:
+        return @total_count if defined?(@total_count) && @total_count
+
+        # There are some cases that total count can be deduced from loaded records
+        if loaded?
+          # Total count has to be 0 if loaded records are 0
+          return @total_count = 0 if (current_page == 1) && @records.empty?
+          # Total count is calculable at the last page
+          per_page = (defined?(@_per) && @_per) || default_per_page
+          return @total_count = (current_page - 1) * per_page + @records.length if @records.any? && (@records.length < per_page)
+        end
+
+        # #count overrides the #select which could include generated columns referenced in #order, so skip #order here, where it's irrelevant to the result anyway
+        c = except(:offset, :limit, :order)
+        # Remove includes only if they are irrelevant
+        c = c.except(:includes) unless references_eager_loaded_tables?
+        # .group returns an OrderedHash that responds to #count
+        c = c.count(column_name)
+        @total_count = if c.is_a?(Hash) || c.is_a?(ActiveSupport::OrderedHash)
+          c.count
+        else
+          c.respond_to?(:count) ? c.count(column_name) : c
+        end
       end
     end
 
@@ -68,6 +122,10 @@ module PagingCursor
 
     ::ActiveRecord::Base.extend FinderMethods
     ::ActiveRecord::Base.extend Limit
+    ::ActiveRecord::Base.extend Count
+    # extend ActiveModelSerializers::Adapter::JsonApi by CursorPaginationLinks,
+    # monkey patch ActiveModelSerializers::Adapter::JsonApi, overload #pagination_links_for
+    # https://github.com/rails-api/active_model_serializers/blob/6c6e45b23f464bd0bb92ae05a4284b72b017be21/lib/active_model_serializers/adapter/json_api.rb
 
     klasses = [::ActiveRecord::Relation]
     if defined? ::ActiveRecord::Associations::CollectionProxy
@@ -80,6 +138,7 @@ module PagingCursor
     klasses.each do |klass| 
       klass.send(:prepend, SortedResults)
       klass.send(:include, FinderMethods) 
+      klass.send(:include, Count)
       klass.send(:include, ::PagingCursor::Direction)
     end
   end
