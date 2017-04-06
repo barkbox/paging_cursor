@@ -12,7 +12,8 @@ Gem::Specification.new do |s|
   s.files = Dir['{lib,spec}/**/*', 'README*', 'LICENSE*']
 
   s.add_development_dependency "rspec"
-  s.add_development_dependency "rails", "~> 4.0.0"
+  s.add_development_dependency "rails", "~> 4.1.0"
   s.add_development_dependency "sqlite3"
-  s.add_development_dependency "rspec-rails"
+  s.add_development_dependency "rspec-rails", "~> 3.5.0"
+  s.add_development_dependency "active_model_serializers", "0.10.4"
 end

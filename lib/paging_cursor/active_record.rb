@@ -18,7 +18,6 @@ module PagingCursor
         result.limit(options[:limit] || self.cursor_page_limit)
       end
 
-      # default limit is not applied in before or after, only in cursor, fix README
       def before(cursor=nil)
         result = where(cursor ? arel_table[primary_key].lt(cursor) : nil).reorder(arel_table[primary_key].desc)
         result.sort_order = :desc
@@ -31,42 +30,6 @@ module PagingCursor
         result.sort_order = :asc
         result.cursored = true
         result
-      end
-    end
-
-    module Count
-
-      def total_count(column_name = :all)
-        return @total_count if defined?(@total_count) && @total_count
-
-        # Total count can be deduced from paginated records
-        # Records are loaded in #before and #after
-        if loaded?
-          return @total_count = 0 if @records.empty?
-          per_page = self.cursor_page_limit
-          return @total_count = (current_page - 1) * per_page + @records.length if (@records.length < per_page)
-        end
-
-        # If records haven't been paginated just return the count
-        # count could include generated columns referenced in #order, so skip #order here
-        c = except(:offset, :limit, :order)
-        # Remove includes only if they are irrelevant
-        c = c.except(:includes) unless references_eager_loaded_tables?
-        # .group returns an OrderedHash that responds to #count
-        c = c.count(column_name)
-        @total_count = if c.is_a?(Hash) || c.is_a?(ActiveSupport::OrderedHash)
-          c.count
-        else
-          c.respond_to?(:count) ? c.count(column_name) : c
-        end
-      end
-
-      def current_page
-        (self.length.to_f / self.cursor_page_limit).ceil
-      end
-
-      def total_pages
-        (self.total_count.to_f / self.cursor_page_limit).ceil
       end
     end
 
@@ -105,10 +68,6 @@ module PagingCursor
 
     ::ActiveRecord::Base.extend FinderMethods
     ::ActiveRecord::Base.extend Limit
-    ::ActiveRecord::Base.extend Count
-    # extend ActiveModelSerializers::Adapter::JsonApi by CursorPaginationLinks,
-    # monkey patch ActiveModelSerializers::Adapter::JsonApi, overload #pagination_links_for
-    # https://github.com/rails-api/active_model_serializers/blob/6c6e45b23f464bd0bb92ae05a4284b72b017be21/lib/active_model_serializers/adapter/json_api.rb
 
     klasses = [::ActiveRecord::Relation]
     if defined? ::ActiveRecord::Associations::CollectionProxy
@@ -120,8 +79,7 @@ module PagingCursor
     # # support pagination on associations and scopes
     klasses.each do |klass| 
       klass.send(:prepend, SortedResults)
-      klass.send(:include, FinderMethods) 
-      klass.send(:include, Count)
+      klass.send(:include, FinderMethods)
       klass.send(:include, ::PagingCursor::Direction)
     end
   end
