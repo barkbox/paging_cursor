@@ -118,7 +118,7 @@ DEPENDENCIES
   paging_cursor!
   rails (~> 4.1.0)
   rspec
-  rspec-rails (~> 3.5.0)
+  rspec-rails
   sqlite3
 
 BUNDLED WITH
