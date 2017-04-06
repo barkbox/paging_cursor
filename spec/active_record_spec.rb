@@ -36,7 +36,7 @@ describe 'finders' do
     expect(Post.cursor(limit: 2).size).to eq(2)
   end
 
-  it 'accepts string and symbol eys' do
+  it 'accepts string and symbol keys' do
     expect(Post.cursor('limit' => 2)).to eq(Post.cursor(limit: 2))
   end
 

@@ -79,7 +79,7 @@ module PagingCursor
     # # support pagination on associations and scopes
     klasses.each do |klass| 
       klass.send(:prepend, SortedResults)
-      klass.send(:include, FinderMethods) 
+      klass.send(:include, FinderMethods)
       klass.send(:include, ::PagingCursor::Direction)
     end
   end
